@@ -1,64 +1,63 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.9-slim'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
-        IMAGE_NAME = 'devsecops-app'
-        DOCKERHUB_USERNAME = credentials('dockerhub-username')
-        DOCKERHUB_PASSWORD = credentials('dockerhub-password')
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds') // Jenkins Credentials ID
+        DOCKER_IMAGE = 'jasgida17/devsecops-app'
     }
 
     stages {
-        stage('Clone') {
+        stage('Clone repo') {
             steps {
-                git 'https://github.com/Jasgida/DevSecOps-App.git'
+                checkout scm
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Install dependencies') {
             steps {
                 sh 'pip install -r requirements.txt'
             }
         }
 
-        stage('Test') {
+        stage('Run tests') {
             steps {
                 sh 'pytest'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Docker image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                sh 'docker build -t $DOCKER_IMAGE .'
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Login to Docker Hub') {
             steps {
-                sh '''
-                echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
-                docker tag $IMAGE_NAME $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
-                docker push $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
-                '''
+                sh 'echo "$DOCKERHUB_CREDENTIALS_PSW" | docker login -u "$DOCKERHUB_CREDENTIALS_USR" --password-stdin'
             }
         }
 
-        stage('Security Scan (Trivy)') {
+        stage('Push Docker image') {
             steps {
-                sh '''
-                if ! command -v trivy >/dev/null; then
-                  echo "Installing Trivy..."
-                  wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_Linux-64bit.deb
-                  sudo dpkg -i trivy_0.51.1_Linux-64bit.deb
-                fi
-                trivy image $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
-                '''
+                sh 'docker push $DOCKER_IMAGE'
             }
         }
+    }
 
-        stage('Run App') {
-            steps {
-                sh 'docker run -d -p 5000:5000 $DOCKERHUB_USERNAME/$IMAGE_NAME:latest'
-            }
+    post {
+        always {
+            sh 'docker logout'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+        success {
+            echo 'Pipeline completed successfully!'
         }
     }
 }
