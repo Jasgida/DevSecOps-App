@@ -1,17 +1,19 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.10'
-            args '-u root:root' // Run as root inside container
-        }
-    }
+    agent any
 
     environment {
-        IMAGE_NAME = "jasgida/devsecops-app"
-        TRIVY_CACHE_DIR = "/var/tmp/trivy"
+        IMAGE_NAME = 'devsecops-app'
+        DOCKERHUB_USERNAME = credentials('dockerhub-username')
+        DOCKERHUB_PASSWORD = credentials('dockerhub-password')
     }
 
     stages {
+        stage('Clone') {
+            steps {
+                git 'https://github.com/Jasgida/DevSecOps-App.git'
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 sh 'pip install -r requirements.txt'
@@ -30,19 +32,32 @@ pipeline {
             }
         }
 
+        stage('Push Docker Image') {
+            steps {
+                sh '''
+                echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+                docker tag $IMAGE_NAME $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
+                docker push $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
+                '''
+            }
+        }
+
         stage('Security Scan (Trivy)') {
             steps {
                 sh '''
-                mkdir -p $TRIVY_CACHE_DIR
-                docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-                    -v $TRIVY_CACHE_DIR:/root/.cache/ aquasec/trivy:latest image $IMAGE_NAME
+                if ! command -v trivy >/dev/null; then
+                  echo "Installing Trivy..."
+                  wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_Linux-64bit.deb
+                  sudo dpkg -i trivy_0.51.1_Linux-64bit.deb
+                fi
+                trivy image $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
                 '''
             }
         }
 
         stage('Run App') {
             steps {
-                sh 'docker run -d -p 5000:5000 --name devsecops-app $IMAGE_NAME'
+                sh 'docker run -d -p 5000:5000 $DOCKERHUB_USERNAME/$IMAGE_NAME:latest'
             }
         }
     }
