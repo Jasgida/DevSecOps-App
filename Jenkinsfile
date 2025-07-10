@@ -1,10 +1,15 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "jasgida/devsecops-app"
+        TRIVY_CACHE_DIR = "/var/tmp/trivy"
+    }
+
     stages {
         stage('Clone') {
             steps {
-                git 'https://github.com/Jasgida/DevSecOps-App.git'
+                git url: 'https://github.com/Jasgida/DevSecOps-App.git', branch: 'main'
             }
         }
 
@@ -16,27 +21,30 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh 'pytest tests/'
+                sh 'pytest'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t devsecops-app .'
+                sh 'docker build -t $IMAGE_NAME .'
             }
         }
 
         stage('Security Scan (Trivy)') {
             steps {
-                sh 'trivy image -f json -o trivy-report/report.json devsecops-app || true'
+                sh '''
+                mkdir -p $TRIVY_CACHE_DIR
+                docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v $TRIVY_CACHE_DIR:/root/.cache/ aquasec/trivy:latest image $IMAGE_NAME
+                '''
             }
         }
 
         stage('Run App') {
             steps {
-                sh 'docker run -d -p 5000:5000 devsecops-app'
+                sh 'docker run -d -p 5000:5000 --name devsecops-app $IMAGE_NAME'
             }
         }
     }
 }
-
