@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.10'
+            args '-u root:root' // Run as root inside container
+        }
+    }
 
     environment {
         IMAGE_NAME = "jasgida/devsecops-app"
@@ -7,12 +12,6 @@ pipeline {
     }
 
     stages {
-        stage('Clone') {
-            steps {
-                git url: 'https://github.com/Jasgida/DevSecOps-App.git', branch: 'main'
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
                 sh 'pip install -r requirements.txt'
@@ -48,3 +47,4 @@ pipeline {
         }
     }
 }
+
