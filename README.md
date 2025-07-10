@@ -1,23 +1,33 @@
 # DevSecOps-App
 🔖 Recommended Project Description: DevSecOps Flask App with CI/CD, Docker, and Jenkins  This project demonstrates a complete DevSecOps pipeline built from scratch using:  🐍 Flask web application (Python)  ⚙️ Jenkins for CI/CD  🐳 Docker for containerization  🛡 Trivy for container image vulnerability scanning  🔗 GitHub Webhooks for automation
 
-# 🚀 DevSecOps-App: Flask CI/CD Pipeline with Jenkins & Docker
+# 🚀 DevSecOps-App
 
-A full-stack DevSecOps demo project built from scratch, showcasing CI/CD, containerization, and security scanning. Designed for real-world use and fast, reliable builds.
+**DevSecOps Flask App with CI/CD, Docker, Jenkins & Security Scanning**
+
+This project demonstrates a complete DevSecOps pipeline built from scratch using:
+
+- 🐍 **Flask** – Python web application framework  
+- ⚙️ **Jenkins** – Continuous Integration & Delivery  
+- 🐳 **Docker** – Containerization of application  
+- 🛡 **Trivy** – Vulnerability scanning for Docker images  
+- 🔗 **GitHub Webhooks** – For triggering automated builds  
+- ☁️ **AWS EC2 (Ubuntu)** – Hosting the entire pipeline  
+- 🧪 **Pytest** – Unit testing framework  
 
 ---
 
 ## 📦 Tech Stack
 
-| Category           | Tool/Tech                        |
-|-------------------|----------------------------------|
-| Backend           | [Flask](https://flask.palletsprojects.com/) (Python) |
-| CI/CD             | [Jenkins](https://www.jenkins.io/) |
-| Containerization  | [Docker](https://www.docker.com/) |
-| Security Scanning | [Trivy](https://aquasecurity.github.io/trivy/) |
-| Testing           | [Pytest](https://docs.pytest.org/) |
-| Hosting           | AWS EC2 (Ubuntu) + VPC            |
-| Source Control    | Git + GitHub                      |
+| Category           | Technology                        |
+|-------------------|------------------------------------|
+| Backend            | [Flask](https://flask.palletsprojects.com/) (Python) |
+| CI/CD              | [Jenkins](https://www.jenkins.io/) |
+| Containerization   | [Docker](https://www.docker.com/) |
+| Security Scanning  | [Trivy](https://aquasecurity.github.io/trivy/) |
+| Testing            | [Pytest](https://docs.pytest.org/) |
+| Hosting            | AWS EC2 (Ubuntu) + Custom VPC     |
+| Source Control     | Git + GitHub                      |
 
 ---
 
@@ -28,84 +38,66 @@ devsecops-app/
 │ └── main.py
 ├── tests/ # Unit tests
 │ └── test_main.py
-├── trivy-report/ # Security scan output
-├── Dockerfile # Container build
-├── Jenkinsfile # CI/CD pipeline
+├── trivy-report/ # Trivy vulnerability scan reports
+├── Dockerfile # Docker container specification
+├── Jenkinsfile # CI/CD pipeline configuration
 ├── requirements.txt # Python dependencies
 ├── README.md # Project documentation
-└── LICENSE
-
-yaml
-Copy
-Edit
+└── LICENSE # MIT License
 
 ---
 
-## ⚙️ Features
+## ⚙️ Key Features
 
-- ✅ CI/CD pipeline via Jenkins
-- ✅ Containerized Flask web app
-- ✅ Auto-build on GitHub push (webhook)
-- ✅ Security scanning with Trivy
-- ✅ Unit testing with pytest
-- ✅ Runs entirely on Docker within an EC2 instance
-
----
-
-## 🚀 How It Works
-
-1. **Push to GitHub**
-2. **Jenkins** auto-triggers pipeline:
-   - Clones repo
-   - Installs dependencies
-   - Runs `pytest`
-   - Builds Docker image
-   - Runs **Trivy** scan
-   - Deploys app on EC2 server
-3. Output available at `http://<EC2-IP>:5000`
+- ✅ End-to-end CI/CD pipeline via Jenkins
+- ✅ Dockerized Flask web application
+- ✅ GitHub webhook integration for auto-triggering builds
+- ✅ Trivy scan for vulnerability detection in Docker images
+- ✅ Unit tests with Pytest
+- ✅ Full deployment within a secure AWS EC2 instance
 
 ---
 
-## 📦 CI/CD Pipeline Overview
+## 🔁 CI/CD Pipeline Flow
 
 ```groovy
 pipeline {
     agent any
     stages {
-        Checkout → Install → Test → Build Image → Trivy Scan → Deploy
+        Checkout
+        Install Dependencies
+        Run Tests
+        Build Docker Image
+        Run Trivy Scan
+        Deploy to EC2
     }
 }
-🧪 Run Locally (Optional)
-bash
-Copy
-Edit
+✅ Trigger:
+GitHub → Jenkins Webhook → CI/CD Pipeline → Auto Deploy
+
+🚀 How to Use
+🧪 Run Locally (for development)
+
 # Install dependencies
 pip install -r requirements.txt
 
 # Run Flask app
 python app/main.py
-Then visit: http://localhost:5000
+Visit: http://localhost:5000
 
+🌍 Deployment Output
+Once deployed on EC2:
+
+http://<your-ec2-public-ip>:5000
 📄 License
-This project is licensed under the MIT License – see the LICENSE file for details.
+This project is licensed under the MIT License.
+See LICENSE for full details.
 
 🙋 Author
 David Jasgida
-🔗 GitHub
-🐍 DevOps Engineer | 🌍 Passionate about automation and security
+🔗 GitHub Profile
+💼 DevOps Engineer | 💡 Passionate about automation, cloud, and security
 
-🧠 Learning Goal
-This project was built to demonstrate clean, secure, and fully automated CI/CD pipelines using modern DevSecOps practices — ideal for job interviews, portfolios, and real-world deployment scenarios.
-
-yaml
-Copy
-Edit
-
----
-
-✅ Go ahead and paste this into your `README.md` file, commit, and push.
-
-Let me know if you'd also like:
-- A **LICENSE file** generated
-- A **pipeline diagram (PNG or SVG)**
-- Or help writing a **project summary for LinkedIn or GitHub bio**
+🧠 Project Goal
+This project was developed to showcase real-world DevSecOps practices — combining continuous integration, containerization, automated testing, and vulnerability scanning.
+It is intended for use in technical interviews, portfolio demonstrations, and as a blueprint for scalable and secure pipelines.
