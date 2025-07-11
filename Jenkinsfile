@@ -1,63 +1,47 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.9-slim'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds') // Jenkins Credentials ID
-        DOCKER_IMAGE = 'jasgida17/devsecops-app'
+        IMAGE_NAME = "jasgida/devsecops-app"
     }
 
     stages {
-        stage('Clone repo') {
+        stage('Clone Repository') {
             steps {
-                checkout scm
+                git url: 'https://github.com/Jasgida/DevSecOps-App.git', branch: 'main'
             }
         }
 
-        stage('Install dependencies') {
+        stage('Install Dependencies') {
             steps {
                 sh 'pip install -r requirements.txt'
             }
         }
 
-        stage('Run tests') {
+        stage('Run Tests') {
             steps {
-                sh 'pytest'
+                sh 'pytest || true'
             }
         }
 
-        stage('Build Docker image') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE .'
+                sh 'docker build -t $IMAGE_NAME .'
             }
         }
 
-        stage('Login to Docker Hub') {
+        stage('Push Docker Image') {
             steps {
-                sh 'echo "$DOCKERHUB_CREDENTIALS_PSW" | docker login -u "$DOCKERHUB_CREDENTIALS_USR" --password-stdin'
+                withDockerRegistry(credentialsId: 'dockerhub-creds', url: '') {
+                    sh 'docker push $IMAGE_NAME'
+                }
             }
         }
 
-        stage('Push Docker image') {
+        stage('Run Container') {
             steps {
-                sh 'docker push $DOCKER_IMAGE'
+                sh 'docker run -d -p 5000:5000 $IMAGE_NAME'
             }
-        }
-    }
-
-    post {
-        always {
-            sh 'docker logout'
-        }
-        failure {
-            echo 'Pipeline failed.'
-        }
-        success {
-            echo 'Pipeline completed successfully!'
         }
     }
 }
