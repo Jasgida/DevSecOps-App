@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "jasgida/devsecops-app"
-    }
-
     stages {
         stage('Clone Repository') {
             steps {
@@ -14,33 +10,43 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'pip install -r requirements.txt'
+                script {
+                    docker.image('python:3.11').inside {
+                        sh 'pip install -r requirements.txt'
+                    }
+                }
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'pytest || true'
+                script {
+                    docker.image('python:3.11').inside {
+                        sh 'pytest'
+                    }
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                script {
+                    dockerImage = docker.build("jasgida/devsecops-app")
+                }
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                withDockerRegistry(credentialsId: 'dockerhub-creds', url: '') {
-                    sh 'docker push $IMAGE_NAME'
+                withDockerRegistry([credentialsId: 'dockerhub-credentials', url: '']) {
+                    dockerImage.push('latest')
                 }
             }
         }
 
         stage('Run Container') {
             steps {
-                sh 'docker run -d -p 5000:5000 $IMAGE_NAME'
+                sh 'docker run -d -p 5000:5000 jasgida/devsecops-app'
             }
         }
     }
