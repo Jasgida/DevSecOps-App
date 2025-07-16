@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  jenkins:
+    build:
+      context: ./jenkins
+    image: devsecops-app-cicd-jenkins
+    container_name: jenkins
+    user: root
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+
+  devsecops-app:
+    build:
+      context: .
+    image: devsecops-app:latest
+    container_name: devsecops-app
+    ports:
+      - "5001:5000"
+
+  devsecops-app-test:
+    image: devsecops-app:latest
+    container_name: devsecops-app-test
+    command: pytest
+    volumes:
+      - .:/app
+    depends_on:
+      - devsecops-app
+
+volumes:
+  jenkins_home:
