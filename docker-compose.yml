@@ -1,30 +1,13 @@
 version: '3.8'
 
 services:
-  jenkins:
-    image: devsecops-app-cicd-jenkins
-    container_name: jenkins
-    user: root
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-      - "50000:50000"
-    volumes:
-      - jenkins_home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-     environment:
-      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
-
   devsecops-app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: devsecops-app
-    command: python app/app.py
     ports:
       - "5001:5000"
-    volumes:
-      - .:/app
     networks:
       - devsecops-net
 
@@ -32,12 +15,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: devsecops-app-test
-    entrypoint: ["pytest", "tests/test_app.py"]
-    volumes:
-      - .:/app
+    command: pytest tests/test_app.py
     depends_on:
       - devsecops-app
+    networks:
+      - devsecops-net
+
+  jenkins:
+    build:
+      context: .
+      dockerfile: Jenkins.Dockerfile
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
     networks:
       - devsecops-net
 
@@ -46,4 +39,5 @@ volumes:
 
 networks:
   devsecops-net:
+    driver: bridge
 
