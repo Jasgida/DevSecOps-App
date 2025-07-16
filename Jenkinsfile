@@ -30,9 +30,13 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                sh 'docker-compose run --rm devsecops-app-test'
+                sh '''
+                    docker build -t devsecops-app-test -f Dockerfile .
+                    docker run --rm -v $(pwd):/app devsecops-app-test pytest tests/test_app.py
+                '''
             }
         }
+
 
         stage('Trivy Vulnerability Scan') {
             steps {
