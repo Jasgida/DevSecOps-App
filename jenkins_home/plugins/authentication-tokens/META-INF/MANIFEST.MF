@@ -1,0 +1,26 @@
+Manifest-Version: 1.0
+Created-By: Maven Archiver 3.6.0
+Build-Jdk-Spec: 17
+Specification-Title: Authentication Tokens API Plugin
+Specification-Version: 0.0
+Implementation-Title: Authentication Tokens API Plugin
+Implementation-Version: 1.131.v7199556c3004
+Group-Id: org.jenkins-ci.plugins
+Artifact-Id: authentication-tokens
+Short-Name: authentication-tokens
+Long-Name: Authentication Tokens API Plugin
+Url: https://github.com/jenkinsci/authentication-tokens-plugin
+Plugin-Version: 1.131.v7199556c3004
+Hudson-Version: 2.479.1
+Jenkins-Version: 2.479.1
+Plugin-Dependencies: credentials:1405.vb_cda_74a_f8974
+Plugin-Developers: Stephen Connolly:stephenconnolly:
+Support-Dynamic-Loading: true
+Plugin-License-Name: The MIT license
+Plugin-License-Url: http://www.opensource.org/licenses/mit-license.php
+Plugin-ScmConnection: scm:git:https://github.com/jenkinsci/authenticatio
+ n-tokens-plugin.git
+Plugin-ScmTag: 7199556c3004994c38f098b9416bdc77f6106bcd
+Plugin-ScmUrl: https://github.com/jenkinsci/authentication-tokens-plugin
+Implementation-Build: 7199556c3004994c38f098b9416bdc77f6106bcd
+

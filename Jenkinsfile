@@ -2,84 +2,49 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'devsecops-app'
-        DOCKERHUB_REPO = 'jasgida/devsecops-app'
+        IMAGE_NAME = "jasgida/devsecops-app"
     }
 
     stages {
-        stage('Clean Workspace') {
+        stage('Clone Repository') {
             steps {
-                cleanWs()
+                git 'https://github.com/Jasgida/DevSecOps-App.git'
             }
         }
 
-        stage('Checkout Code') {
+        stage('Install Dependencies') {
             steps {
-                checkout([$class: 'GitSCM',
-                    branches: [[name: "*/${env.BRANCH_NAME}"]],
-                    userRemoteConfigs: [[url: 'https://github.com/Jasgida/DevSecOps-App.git']]
-                ])
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker-compose build'
+                sh 'pip install -r requirements.txt'
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh '''
-                    docker build -t devsecops-app-test -f Dockerfile .
-                    docker run --rm -v $(pwd):/app devsecops-app-test pytest tests/test_app.py
-                '''
+                sh 'pytest tests/test_app.py'
             }
         }
 
-
-        stage('Trivy Vulnerability Scan') {
+        stage('Build Docker Image') {
             steps {
-                sh '''
-                    trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress devsecops-app || true
-                '''
+                sh 'docker build -t $IMAGE_NAME .'
             }
         }
 
-        stage('Push Docker Image to DockerHub') {
-            when {
-                expression { env.BRANCH_NAME == 'main' }
-            }
+        stage('Scan Image for Vulnerabilities') {
             steps {
-                script {
-                    def versionTag = "${DOCKERHUB_REPO}:${env.BUILD_NUMBER}"
-                    def latestTag = "${DOCKERHUB_REPO}:latest"
-                    sh "docker tag ${IMAGE_NAME} ${versionTag}"
-                    sh "docker tag ${IMAGE_NAME} ${latestTag}"
-                }
+                sh 'trivy image $IMAGE_NAME || true'
+            }
+        }
 
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKERHUB_USERNAME',
-                    passwordVariable: 'DOCKERHUB_PASSWORD'
-                )]) {
-                    sh '''
-                        docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
-                        docker push $DOCKERHUB_REPO:${BUILD_NUMBER}
-                        docker push $DOCKERHUB_REPO:latest
-                    '''
+        stage('Push Image to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push $IMAGE_NAME
+                    """
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Cleaning up workspace after build...'
-            cleanWs()
-        }
-        failure {
-            echo 'Build failed. Please check logs.'
         }
     }
 }
