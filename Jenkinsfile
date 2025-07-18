@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'devsecops-app'
-        DOCKERHUB_REPO = 'jasgida/devsecops-app'
+        IMAGE_NAME = "jasgida/devsecops-flask-app"
+        TAG = "latest"
     }
 
     stages {
@@ -15,58 +15,37 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                checkout([$class: 'GitSCM',
-                    branches: [[name: "*/${env.BRANCH_NAME}"]],
-                    userRemoteConfigs: [[url: 'https://github.com/Jasgida/DevSecOps-App.git']]
-                ])
+                checkout scm
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker-compose build'
+                sh 'docker --version'
+                sh 'docker compose version'
+                sh 'docker compose build'
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh '''
-                    docker build -t devsecops-app-test -f Dockerfile .
-                    docker run --rm -v $(pwd):/app devsecops-app-test pytest tests/test_app.py
-                '''
+                sh 'docker compose run --rm web pytest'
             }
         }
 
-
         stage('Trivy Vulnerability Scan') {
             steps {
-                sh '''
-                    trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress devsecops-app || true
-                '''
+                sh 'trivy image ${IMAGE_NAME}:${TAG} || true'
             }
         }
 
         stage('Push Docker Image to DockerHub') {
-            when {
-                expression { env.BRANCH_NAME == 'main' }
-            }
             steps {
-                script {
-                    def versionTag = "${DOCKERHUB_REPO}:${env.BUILD_NUMBER}"
-                    def latestTag = "${DOCKERHUB_REPO}:latest"
-                    sh "docker tag ${IMAGE_NAME} ${versionTag}"
-                    sh "docker tag ${IMAGE_NAME} ${latestTag}"
-                }
-
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKERHUB_USERNAME',
-                    passwordVariable: 'DOCKERHUB_PASSWORD'
-                )]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
-                        docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
-                        docker push $DOCKERHUB_REPO:${BUILD_NUMBER}
-                        docker push $DOCKERHUB_REPO:latest
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker tag ${IMAGE_NAME}:${TAG} ${IMAGE_NAME}:${TAG}
+                        docker push ${IMAGE_NAME}:${TAG}
                     '''
                 }
             }
