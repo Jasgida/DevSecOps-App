@@ -2,63 +2,67 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "jasgida/devsecops-flask-app"
-        TAG = "latest"
+        IMAGE_NAME = 'devsecops-app'
+        DOCKER_HUB_USERNAME = 'jasgida'
+        TAG = "${env.BUILD_NUMBER}"
     }
 
     stages {
-        stage('Clean Workspace') {
-            steps {
-                cleanWs()
-            }
-        }
 
         stage('Checkout Code') {
             steps {
-                checkout scm
+                git branch: 'dev', url: 'https://github.com/Jasgida/DevSecOps-App.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'pip install -r requirements.txt'
+            }
+        }
+
+        stage('Run Unit Tests') {
+            steps {
+                sh 'pytest tests/test_app.py'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker --version'
-                sh 'docker compose version'
-                sh 'docker compose build'
+                sh 'docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME:$TAG .'
             }
         }
 
-        stage('Run Tests') {
+        stage('Trivy Scan') {
             steps {
-                sh 'docker compose run --rm web pytest'
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image $DOCKER_HUB_USERNAME/$IMAGE_NAME:$TAG'
             }
         }
 
-        stage('Trivy Vulnerability Scan') {
+        stage('Push to Docker Hub') {
             steps {
-                sh 'trivy image ${IMAGE_NAME}:${TAG} || true'
-            }
-        }
-
-        stage('Push Docker Image to DockerHub') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker tag ${IMAGE_NAME}:${TAG} ${IMAGE_NAME}:${TAG}
-                        docker push ${IMAGE_NAME}:${TAG}
+                        echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
+                        docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME:$TAG
                     '''
                 }
+            }
+        }
+
+        stage('Deploy (Optional)') {
+            steps {
+                echo 'This is where deployment would happen (e.g., docker-compose up -d)'
             }
         }
     }
 
     post {
-        always {
-            echo 'Cleaning up workspace after build...'
-            cleanWs()
-        }
         failure {
-            echo 'Build failed. Please check logs.'
+            echo 'Pipeline failed. Please check logs.'
+        }
+        success {
+            echo 'Pipeline completed successfully.'
         }
     }
 }

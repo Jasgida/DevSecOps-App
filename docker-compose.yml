@@ -15,6 +15,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: devsecops-app-test
     command: pytest tests/test_app.py
     depends_on:
       - devsecops-app
@@ -30,14 +31,13 @@ services:
       - "8080:8080"
       - "50000:50000"
     volumes:
-      - jenkins_home:/var/jenkins_home
+      - ./jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - devsecops-net
-
-volumes:
-  jenkins_home:
 
 networks:
   devsecops-net:
     driver: bridge
+
 
