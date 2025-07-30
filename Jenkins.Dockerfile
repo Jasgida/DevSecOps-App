@@ -2,18 +2,11 @@ FROM jenkins/jenkins:lts
 
 USER root
 
-# Install Docker and Python tools
-RUN apt-get update && apt-get install -y \
-    docker.io \
-    python3 \
-    python3-pip \
-    curl && \
-    pip3 install --break-system-packages pytest && \
+# Install Python and venv
+RUN apt-get update && \
+    apt-get install -y python3.11 python3.11-venv python3.11-distutils && \
+    ln -s /usr/bin/python3.11 /usr/bin/python3 && \
     apt-get clean
 
-# Add Jenkins to the Docker group
-RUN usermod -aG docker jenkins
-
-# Switch back to Jenkins user
 USER jenkins
 
