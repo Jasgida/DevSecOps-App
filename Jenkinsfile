@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'dev', url: 'https://github.com/Jasgida/DevSecOps-App.git'
+                git branch: 'main', url: 'https://github.com/Jasgida/DevSecOps-App.git'
             }
         }
 
