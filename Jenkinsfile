@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'jasgida/devsecops-flask-app'
-        TRIVY_CACHE_DIR = "${env.WORKSPACE}/trivycache"
+        IMAGE_NAME = 'jasgida/devsecops-app'
+        DOCKER_CREDS = credentials('docker-creds')
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                git 'https://github.com/Jasgida/DevSecOps-App.git'
+                git branch: 'main', url: 'https://github.com/Jasgida/DevSecOps-App.git'
             }
         }
 
@@ -19,7 +19,7 @@ pipeline {
                     python3 -m venv venv
                     . venv/bin/activate
                     pip install --upgrade pip
-                    pip install -r app/requirements.txt
+                    pip install -r requirements.txt
                 '''
             }
         }
@@ -35,26 +35,26 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                    docker build -t $IMAGE_NAME .
-                '''
+                sh 'docker build -t $IMAGE_NAME .'
             }
         }
 
         stage('Trivy Scan') {
             steps {
                 sh '''
-                    mkdir -p $TRIVY_CACHE_DIR
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-                        -v $TRIVY_CACHE_DIR:/root/.cache/ -v /tmp:/tmp \
-                        aquasec/trivy image --exit-code 0 --severity MEDIUM,HIGH,CRITICAL $IMAGE_NAME
+                    apt-get update && apt-get install -y wget apt-transport-https gnupg lsb-release
+                    wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor -o /usr/share/keyrings/trivy.gpg
+                    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/trivy.list
+                    apt-get update && apt-get install -y trivy
+                    trivy image --exit-code 0 --severity LOW,MEDIUM $IMAGE_NAME
+                    trivy image --exit-code 1 --severity HIGH,CRITICAL $IMAGE_NAME || echo "High/Critical vulnerabilities found"
                 '''
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'docker-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                         docker push $IMAGE_NAME
@@ -65,7 +65,7 @@ pipeline {
 
         stage('Deploy (Optional)') {
             steps {
-                echo 'Deploy stage (optional). Add deployment script here.'
+                echo 'Deploy step would go here (e.g., docker-compose up or kubectl apply)'
             }
         }
     }
@@ -73,9 +73,6 @@ pipeline {
     post {
         failure {
             echo 'Pipeline failed. Please check logs.'
-        }
-        success {
-            echo 'Pipeline completed successfully.'
         }
     }
 }
