@@ -16,20 +16,15 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
+                    pip3 install --upgrade pip
+                    pip3 install -r requirements.txt
                 '''
             }
         }
 
         stage('Run Unit Tests') {
             steps {
-                sh '''
-                    . venv/bin/activate
-                    pytest
-                '''
+                sh 'pytest'
             }
         }
 
@@ -42,10 +37,6 @@ pipeline {
         stage('Trivy Scan') {
             steps {
                 sh '''
-                    apt-get update && apt-get install -y wget apt-transport-https gnupg lsb-release
-                    wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor -o /usr/share/keyrings/trivy.gpg
-                    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/trivy.list
-                    apt-get update && apt-get install -y trivy
                     trivy image --exit-code 0 --severity LOW,MEDIUM $IMAGE_NAME
                     trivy image --exit-code 1 --severity HIGH,CRITICAL $IMAGE_NAME || echo "High/Critical vulnerabilities found"
                 '''
