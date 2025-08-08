@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   jenkins-pipeline:
     build:
@@ -10,10 +11,11 @@ services:
       - "50000:50000"
     volumes:
       - jenkins-home:/var/jenkins_home
-      - ./workspace:/var/jenkins_home/workspace
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - JENKINS_OPTS=--prefix=/jenkins
+      - DOCKER_GROUP_GID=${DOCKER_GROUP_GID}
+    user: "${UID}:${GID}"
     networks:
       - devsecops-net
     restart: unless-stopped
@@ -52,3 +54,5 @@ networks:
 
 volumes:
   jenkins-home:
+    external: true
+    name: devsecops-app_jenkins-home
