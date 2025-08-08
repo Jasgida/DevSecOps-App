@@ -1,0 +1,21 @@
+# Define the Docker Compose file version
+# Version 3.8 supports advanced features like healthcheck and improved networking
+version: '3.8'
+
+# Define the services to be managed by Docker Compose
+services:
+  # Service for the main application
+  devsecops-app:
+    # Build the image from the Dockerfile in the current directory
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Assign a unique container name based on the build ID (optional for manual use)
+    container_name: devsecops-app
+    # Map port 5001 on the host to port 5000 in the container for external access
+    ports:
+      - "5001:5000"
+    # Define a health check to verify the application is running correctly
+    healthcheck:
+      # Test command to check the app's health endpoint
+      test: ["CMD", "curl", "-f", 

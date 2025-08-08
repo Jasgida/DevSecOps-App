@@ -1,0 +1,54 @@
+version: '3.8'
+services:
+  jenkins-pipeline:
+    build:
+      context: .
+      dockerfile: Jenkins.Dockerfile
+    container_name: jenkins-pipeline
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-home:/var/jenkins_home
+      - ./workspace:/var/jenkins_home/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - JENKINS_OPTS=--prefix=/jenkins
+    networks:
+      - devsecops-net
+    restart: unless-stopped
+
+  devsecops-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: devsecops-app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - jenkins-pipeline
+    networks:
+      - devsecops-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  devsecops-app-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: devsecops-app-test
+    depends_on:
+      - devsecops-app
+    networks:
+      - devsecops-net
+    entrypoint: ["/bin/sh", "-c", "sleep 5 && exit 0"]  # Simple test container that exits after 5 seconds
+
+networks:
+  devsecops-net:
+    driver: bridge
+
+volumes:
+  jenkins-home:
