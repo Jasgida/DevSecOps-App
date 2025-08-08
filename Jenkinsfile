@@ -103,7 +103,7 @@ pipeline {
     }
     post {
         always {
-            node {
+            node('master') {  // Use 'master' or any available label
                 sh '''
                     docker-compose down || true
                     docker image prune -f || true
