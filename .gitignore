@@ -1,6 +1,15 @@
 jenkins_home/
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> bd3669d (Update Dockerfile, Jenkinsfile, and docker-compose.yml for DevSecOps setup with custom Jenkins image and fixed pipeline dependencies)
 workspace/
 *.log
 *.tar.gz
 *.bak
 home/
+<<<<<<< HEAD
+=======
+>>>>>>> 87babec (Add untracked files)
+>>>>>>> bd3669d (Update Dockerfile, Jenkinsfile, and docker-compose.yml for DevSecOps setup with custom Jenkins image and fixed pipeline dependencies)
