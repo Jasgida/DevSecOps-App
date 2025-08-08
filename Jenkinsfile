@@ -103,7 +103,7 @@ pipeline {
     }
     post {
         always {
-            node('master') {  // Use 'master' or any available label
+            node('built-in') {  // Use 'built-in' as the default controller node label
                 sh '''
                     docker-compose down || true
                     docker image prune -f || true

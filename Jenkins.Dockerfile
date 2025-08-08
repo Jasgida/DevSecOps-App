@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y \
     apt-transport-https \
     ca-certificates \
     gnupg \
-    lsb-release
+    lsb-release \
+    python3.11-venv  # Added for virtual environment support
 
 # Install Docker CLI
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
@@ -25,8 +26,10 @@ RUN chmod +x /usr/local/bin/docker-compose
 # Install Trivy
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
-# Switch back to Jenkins user
+# Initialize workspace directory
+RUN mkdir -p /var/jenkins_home/workspace/ && chown jenkins:jenkins /var/jenkins_home/workspace/
+
+# Switch back to jenkins user
 USER jenkins
 
-# Set working directory
 WORKDIR /var/jenkins_home
