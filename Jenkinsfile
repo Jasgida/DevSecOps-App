@@ -31,7 +31,7 @@ pipeline {
                         userRemoteConfigs: [[url: 'https://github.com/Jasgida/DevSecOps-App.git']]])
                     sh '''
                         git init
-                        git config --global --add safe.directory ${env.WORKSPACE}
+                        git config --global --add safe.directory "$WORKSPACE"
                         git status
                         ls -la
                     '''
@@ -103,11 +103,13 @@ pipeline {
     }
     post {
         always {
-            sh '''
-                docker-compose down || true
-                docker image prune -f || true
-            '''
-            echo 'Pipeline completed.'
+            node {
+                sh '''
+                    docker-compose down || true
+                    docker image prune -f || true
+                '''
+                echo 'Pipeline completed.'
+            }
         }
         failure {
             echo 'Pipeline failed. Check logs for details.'
