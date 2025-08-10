@@ -1,0 +1,6 @@
+jenkins_home/
+workspace/
+*.log
+*.tar.gz
+*.bak
+home/
