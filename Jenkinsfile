@@ -1,69 +1,65 @@
 pipeline {
     agent any
-
-    environment {
-        IMAGE_NAME = 'devsecops-app'
-        DOCKER_HUB_USERNAME = 'jasgida'
-        TAG = "${env.BUILD_NUMBER}"
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
     }
-
+    environment {
+        DOCKER_IMAGE = "jasgida/devsecops-app"
+        BUILD_TAG = "${env.BUILD_NUMBER}"
+        COMPOSE_FILE = "docker-compose.yml"
+    }
     stages {
-
-        stage('Checkout Code') {
+        stage('Checkout Main') {
             steps {
-                git branch: 'dev', url: 'https://github.com/Jasgida/DevSecOps-App.git'
+                cleanWs()
+                git branch: 'main',
+                    url: 'https://github.com/Jasgida/DevSecOps-App.git'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Build & Test') {
             steps {
-                sh 'pip install -r requirements.txt'
-            }
-        }
-
-        stage('Run Unit Tests') {
-            steps {
-                sh 'pytest tests/test_app.py'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME:$TAG .'
-            }
-        }
-
-        stage('Trivy Scan') {
-            steps {
-                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image $DOCKER_HUB_USERNAME/$IMAGE_NAME:$TAG'
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    sh '''
-                        echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
-                        docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME:$TAG
-                    '''
+                script {
+                    // Build app service from docker-compose
+                    sh "docker-compose -f ${COMPOSE_FILE} build app"
+                    // Run tests inside the container
+                    sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_TAG} pytest tests/ -v"
                 }
             }
         }
 
-        stage('Deploy (Optional)') {
+        stage('Security Scan') {
             steps {
-                echo 'This is where deployment would happen (e.g., docker-compose up -d)'
+                sh """
+                    trivy image --exit-code 1 --severity CRITICAL ${DOCKER_IMAGE}:${BUILD_TAG} || true
+                    trivy fs --security-checks config ./app || true
+                """
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        docker login -u $DOCKER_USER -p $DOCKER_PASS
+                        docker tag ${DOCKER_IMAGE}:${BUILD_TAG} ${DOCKER_IMAGE}:latest
+                        docker push ${DOCKER_IMAGE}:${BUILD_TAG}
+                        docker push ${DOCKER_IMAGE}:latest
+                        docker-compose -f ${COMPOSE_FILE} up -d
+                    """
+                }
             }
         }
     }
-
     post {
-        failure {
-            echo 'Pipeline failed. Please check logs.'
-        }
-        success {
-            echo 'Pipeline completed successfully.'
+        always {
+            cleanWs()
+            sh "docker system prune -af"
         }
     }
 }
-

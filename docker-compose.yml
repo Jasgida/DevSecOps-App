@@ -1,43 +1,48 @@
 version: '3.8'
 
 services:
-  devsecops-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: devsecops-app
-    ports:
-      - "5001:5000"
-    networks:
-      - devsecops-net
-
-  devsecops-app-test:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: devsecops-app-test
-    command: pytest tests/test_app.py
-    depends_on:
-      - devsecops-app
-    networks:
-      - devsecops-net
-
   jenkins:
     build:
       context: .
       dockerfile: Jenkins.Dockerfile
-    container_name: jenkins
+    image: jenkins-devsecops
+    container_name: jenkins-main
     ports:
       - "8080:8080"
       - "50000:50000"
     volumes:
-      - ./jenkins_home:/var/jenkins_home
+      - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - devsecops-net
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsSL http://localhost:8080/login || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: devsecops-app
+    container_name: devsecops-app-main
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app
+    environment:
+      - FLASK_ENV=development
+    depends_on:
+      jenkins:
+        condition: service_healthy
 
 networks:
-  devsecops-net:
+  default:
+    name: devsecops-net
     driver: bridge
 
-
+volumes:
+  jenkins_home:
+    name: jenkins_home
