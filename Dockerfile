@@ -7,12 +7,24 @@ FROM python:3.11-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies
+# Install system dependencies and build tools for SQLite
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
     curl \
+    wget \
+    make \
     && rm -rf /var/lib/apt/lists/*
+
+# Download, compile, and install updated SQLite (3.50.2) to fix CVE-2025-6965
+RUN wget https://www.sqlite.org/2025/sqlite-autoconf-3500200.tar.gz && \
+    tar xvfz sqlite-autoconf-3500200.tar.gz && \
+    cd sqlite-autoconf-3500200 && \
+    ./configure --prefix=/usr && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf sqlite-autoconf-3500200 sqlite-autoconf-3500200.tar.gz
 
 # =========================
 # 2. Install Dependencies

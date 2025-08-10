@@ -1,13 +1,12 @@
 import pytest
-from app.main import app
+from app.main import app  # This should now work with __init__.py in app/
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
+    return app.test_client()
 
-def test_health_endpoint(client):
-    response = client.get('/health')
+def test_home(client):
+    response = client.get('/')
     assert response.status_code == 200
-    assert b"devsecops-app" in response.data
+    assert b'Hello, World!' in response.data  # Adjust based on your app

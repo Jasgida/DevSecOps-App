@@ -58,6 +58,9 @@ pipeline {
                         docker tag ${DOCKER_IMAGE}:${BUILD_TAG} ${DOCKER_IMAGE}:latest
                         docker push ${DOCKER_IMAGE}:${BUILD_TAG}
                         docker push ${DOCKER_IMAGE}:latest
+                        # Stop and remove existing container to avoid name conflict
+                        docker stop devsecops-app-main || true
+                        docker rm devsecops-app-main || true
                         docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
                     '''
                 }
