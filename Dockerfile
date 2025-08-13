@@ -31,7 +31,7 @@ RUN apt-get update && apt-get remove -y libsqlite3-dev libopenexr-3-1-30 libopen
 
 # Create non-root user and set permissions early
 RUN useradd -m appuser && \
-    mkdir -p /app && \
+    mkdir -p /app /app/.pytest_cache && \
     chown -R appuser:appuser /app
 
 # Set working directory and switch to non-root user
@@ -42,8 +42,9 @@ USER appuser
 COPY --chown=appuser:appuser requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Copy application code
+# Copy application code and fix permissions
 COPY --chown=appuser:appuser . .
+RUN chmod -R u+rw /app
 
 # Expose port and start app
 EXPOSE 5000
