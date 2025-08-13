@@ -1,68 +1,57 @@
 pipeline {
     agent any
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        disableConcurrentBuilds()
-    }
     environment {
-        DOCKER_IMAGE = "jasgida/devsecops-app"
-        BUILD_TAG = "${env.BUILD_NUMBER}"
-        COMPOSE_FILE = "docker-compose.yml"
+        DOCKER_IMAGE = 'jasgida/devsecops-app:7'
     }
     stages {
         stage('Setup') {
             steps {
-                sh '''
-                    docker --version
-                    docker-compose --version
-                    trivy --version
-                '''
+                sh 'docker --version'
+                sh 'docker-compose --version'
+                sh 'trivy --version'
             }
         }
         stage('Checkout Main') {
             steps {
                 cleanWs()
-                git branch: 'main',
-                    url: 'https://github.com/Jasgida/DevSecOps-App.git'
+                git branch: 'main', url: 'https://github.com/Jasgida/DevSecOps-App.git'
             }
         }
         stage('Build & Test') {
             steps {
                 script {
-                    // Build app service from docker-compose
-                    sh "docker-compose -f ${COMPOSE_FILE} build app"
-                    // Verify tests directory exists
-                    sh '[ -d tests ] || echo "Warning: tests/ directory not found"'
-                    // Run tests inside the container
-                    sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_TAG} pytest tests/ -v || true"
+                    sh 'docker-compose -f docker-compose.yml build app'
+                    sh 'docker run --rm ${DOCKER_IMAGE} ls -la /app /app/app /app/tests'
+                    sh '''
+                        docker run --rm -e PYTHONPATH=/app ${DOCKER_IMAGE} pytest tests/ -v --import-mode=importlib --cache-clear || {
+                            echo "Tests failed. Check pytest output above for details."
+                            exit 1
+                        }
+                    '''
                 }
             }
         }
         stage('Security Scan') {
             steps {
                 sh '''
-                    trivy image --exit-code 1 --severity CRITICAL ${DOCKER_IMAGE}:${BUILD_TAG} || true
-                    trivy fs --security-checks config ./app || true
+                    trivy image --exit-code 1 --severity CRITICAL --ignorefile .trivyignore ${DOCKER_IMAGE} || {
+                        echo "Security scan found critical vulnerabilities. Review Trivy output."
+                        exit 1
+                    }
                 '''
+                sh 'trivy fs --scanners misconfig ./app'
             }
         }
         stage('Deploy') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                        docker login -u $DOCKER_USER -p $DOCKER_PASS
-                        docker tag ${DOCKER_IMAGE}:${BUILD_TAG} ${DOCKER_IMAGE}:latest
-                        docker push ${DOCKER_IMAGE}:${BUILD_TAG}
-                        docker push ${DOCKER_IMAGE}:latest
-                        # Stop and remove existing container to avoid name conflict
-                        docker stop devsecops-app-main || true
-                        docker rm devsecops-app-main || true
-                        docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
-                    '''
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh 'docker tag ${DOCKER_IMAGE} jasgida/devsecops-app:latest'
+                    sh 'docker push ${DOCKER_IMAGE}'
+                    sh 'docker push jasgida/devsecops-app:latest'
+                    sh 'docker stop devsecops-app-main || true'
+                    sh 'docker rm devsecops-app-main || true'
+                    sh 'docker-compose -f docker-compose.yml up -d --remove-orphans'
                 }
             }
         }
@@ -70,7 +59,7 @@ pipeline {
     post {
         always {
             cleanWs()
-            sh 'docker system prune -af || true'
+            sh 'docker system prune -af'
         }
     }
 }
