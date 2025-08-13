@@ -17,11 +17,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: jasgida/devsecops-app:13
+    image: jasgida/devsecops-app:14
     container_name: devsecops-app-main
     restart: unless-stopped
     ports:
       - "5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     networks:
       - devsecops-net
 networks:

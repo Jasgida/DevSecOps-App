@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'jasgida/devsecops-app:13'
+        DOCKER_IMAGE = 'jasgida/devsecops-app:14'
     }
     stages {
         stage('Setup') {
@@ -57,6 +57,16 @@ pipeline {
         }
     }
     post {
+        success {
+            mail to: 'your-email@example.com',
+                 subject: "Build #${env.BUILD_NUMBER} Succeeded",
+                 body: "The DevSecOps-App-CICD pipeline build #${env.BUILD_NUMBER} completed successfully.\nImage: ${env.DOCKER_IMAGE}\nCheck Jenkins for details: ${env.BUILD_URL}"
+        }
+        failure {
+            mail to: 'your-email@example.com',
+                 subject: "Build #${env.BUILD_NUMBER} Failed",
+                 body: "The DevSecOps-App-CICD pipeline build #${env.BUILD_NUMBER} failed.\nPlease check Jenkins for details: ${env.BUILD_URL}"
+        }
         always {
             cleanWs()
             sh 'docker system prune -af'

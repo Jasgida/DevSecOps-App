@@ -49,6 +49,10 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 COPY --chown=appuser:appuser . .
 RUN chmod -R u+rw /app
 
+# Healthcheck for Flask app
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/ || exit 1
+
 # Expose port and start app
 EXPOSE 5000
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app.main:app"]
