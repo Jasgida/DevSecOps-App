@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'jasgida/devsecops-app:11'
+        DOCKER_IMAGE = 'jasgida/devsecops-app:12'
     }
     stages {
         stage('Setup') {

@@ -38,6 +38,9 @@ RUN useradd -m appuser && \
 WORKDIR /app
 USER appuser
 
+# Add /home/appuser/.local/bin to PATH for gunicorn
+ENV PATH=/home/appuser/.local/bin:$PATH
+
 # Install Python dependencies
 COPY --chown=appuser:appuser requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
