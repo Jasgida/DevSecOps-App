@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'jasgida/devsecops-app:10'
+        DOCKER_IMAGE = 'jasgida/devsecops-app:11'
     }
     stages {
         stage('Setup') {
@@ -44,7 +44,7 @@ pipeline {
         }
         stage('Deploy') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                     sh 'docker tag ${DOCKER_IMAGE} jasgida/devsecops-app:latest'
                     sh 'docker push ${DOCKER_IMAGE}'
