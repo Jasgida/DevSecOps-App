@@ -17,7 +17,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: jasgida/devsecops-app:14
+    image: jasgida/devsecops-app:15
     container_name: devsecops-app-main
     restart: unless-stopped
     ports:
